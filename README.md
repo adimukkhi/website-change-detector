@@ -12,7 +12,7 @@ Pillow, and optional SMTP/Telegram/Discord/OpenAI integrations.
 
 The deployed website will be available here:
 
-**[Open Website Change Detector](https://your-deployed-domain.example.com)**
+**[Open Website Change Detector]([https://your-deployed-domain.example.com](https://website-change-detector-l1mj.onrender.com/))**
 
 Replace the placeholder URL above with the actual deployment URL when it is
 available.
