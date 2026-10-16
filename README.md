@@ -8,15 +8,6 @@ Pillow, and optional SMTP/Telegram/Discord/OpenAI integrations.
 > Use this project only for public pages you are authorized to monitor. Do not
 > submit passwords, cookies, API keys, or other stored credentials for a page.
 
-## Live deployment
-
-The deployed website will be available here:
-
-**[Open Website Change Detector](https://website-change-detector-l1mj.onrender.com/)**
-
-Replace the placeholder URL above with the actual deployment URL when it is
-available.
-
 ## Features
 
 ### Monitoring
