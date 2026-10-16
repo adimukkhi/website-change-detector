@@ -8,6 +8,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from flask import Flask, Response, abort, flash, jsonify, redirect, render_template, request, send_file, session, url_for
 from flask_wtf.csrf import CSRFProtect
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy import inspect, or_, select, text
 
@@ -30,15 +31,21 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.update(
         SECRET_KEY=os.getenv("SECRET_KEY", "local-development-key-change-me"),
-        SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", "sqlite:///website_changes.db"),
+        SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", "sqlite:///website_changes.db").replace(
+            "postgres://", "postgresql://", 1
+        ),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         MAX_CONTENT_LENGTH=1_000_000,
         TIMEZONE=os.getenv("APP_TIMEZONE", "Asia/Kolkata"),
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=os.getenv("COOKIE_SECURE", "false").casefold() == "true",
     )
 
     if test_config:
         app.config.update(test_config)
 
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
     app.config["SCREENSHOT_DIR"] = str(Path(os.getenv("SCREENSHOT_DIR", "data/screenshots")).resolve())
     Path(app.config["SCREENSHOT_DIR"]).mkdir(parents=True, exist_ok=True)
@@ -166,6 +173,10 @@ def create_app(test_config=None):
     @app.get("/")
     def dashboard():
         return render_template("dashboard.html", monitors=get_monitors())
+
+    @app.get("/health")
+    def health():
+        return jsonify({"status": "ok"})
 
     @app.get("/partials/monitors")
     def monitor_rows():

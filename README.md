@@ -309,6 +309,30 @@ For local development, `python app.py` is sufficient. For production:
 - Test real SMTP, Discord, and Telegram delivery in staging.
 - Do not expose Flask's development server directly to the internet.
 
+### Deploying to Render
+
+This repository includes [`render.yaml`](./render.yaml), which defines a
+Render web service, a PostgreSQL database, a persistent disk for screenshots,
+the Playwright Chromium installation, a production Waitress server, and the
+`/health` health-check endpoint.
+
+1. Push the repository to GitHub or another Git provider.
+2. In Render, choose **New → Blueprint** and select the repository.
+3. Review the services and create the PostgreSQL database and web service.
+4. Set `PUBLIC_BASE_URL` to the actual Render HTTPS URL.
+5. Add real SMTP, Telegram, Discord, or OpenAI values only in Render's
+   environment settings; never commit them to the repository.
+6. Deploy and verify `https://your-domain.onrender.com/health` returns
+   `{"status":"ok"}`.
+
+The Render service uses `waitress-serve` through [`wsgi.py`](./wsgi.py), which
+starts the scheduler once for the web process. Use one web instance unless the
+scheduler is moved into a dedicated worker; multiple scheduler instances can
+duplicate periodic work even though queue and notification claims are guarded.
+The persistent disk is mounted at `/var/data`, with screenshots stored in
+`/var/data/screenshots`. Replace or adjust the disk configuration if your
+Render plan does not support persistent disks.
+
 ## Limitations
 
 - Browser extension support is not included.
