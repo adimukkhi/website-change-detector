@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Website Change Detector{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <h1 class="text-3xl font-bold">Website monitoring</h1>
+  <p class="text-slate-500 mt-2">Track meaningful changes and ignore page noise.</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <section class="bg-white border rounded-2xl p-5 h-fit">
+    <h2 class="text-lg font-semibold mb-4">Add a monitor</h2>
+    <form action="{{ url_for('create_monitor') }}" method="post" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label for="name" class="block text-sm font-medium mb-1">Name</label>
+        <input id="name" name="name" required maxlength="160"
+          placeholder="Product pricing page"
+          class="w-full border rounded-lg px-3 py-2">
+      </div>
+
+      <div>
+        <label for="url" class="block text-sm font-medium mb-1">Public URL</label>
+        <input id="url" name="url" type="url" required
+          placeholder="https://example.com/pricing"
+          class="w-full border rounded-lg px-3 py-2">
+      </div>
+
+      <div>
+        <label for="alert_email" class="block text-sm font-medium mb-1">
+          Email for alerts (optional)
+        </label>
+        <input id="alert_email" name="alert_email" type="email" maxlength="255"
+          autocomplete="email" placeholder="you@example.com"
+          class="w-full border rounded-lg px-3 py-2">
+        <p class="text-xs text-slate-500 mt-1">
+          Change notifications for this monitor will be sent here when SMTP is configured.
+        </p>
+      </div>
+
+      <label class="flex items-start gap-2 text-sm">
+        <input type="checkbox" name="daily_digest" class="mt-1">
+        <span>Send a daily email digest of changes (requires an alert email and SMTP configuration)</span>
+      </label>
+
+      <div>
+        <label for="interval_minutes" class="block text-sm font-medium mb-1">Interval</label>
+        <select id="interval_minutes" name="interval_minutes"
+          class="w-full border rounded-lg px-3 py-2">
+          <option value="15">15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="60" selected>1 hour</option>
+          <option value="180">3 hours</option>
+          <option value="360">6 hours</option>
+          <option value="720">12 hours</option>
+          <option value="1440">24 hours</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="sensitivity" class="block text-sm font-medium mb-1">Sensitivity</label>
+        <select id="sensitivity" name="sensitivity"
+          class="w-full border rounded-lg px-3 py-2">
+          <option value="low">Low — ignore case differences</option>
+          <option value="normal" selected>Normal</option>
+          <option value="high">High — preserve case differences</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="ignore_selectors" class="block text-sm font-medium mb-1">
+          Ignore CSS selectors
+        </label>
+        <textarea id="ignore_selectors" name="ignore_selectors" rows="2"
+          placeholder=".ad-slot, #timestamp, .live-counter"
+          class="w-full border rounded-lg px-3 py-2"></textarea>
+        <p class="text-xs text-slate-500 mt-1">Comma-separated selectors.</p>
+      </div>
+
+      <div>
+        <label for="watch_selectors" class="block text-sm font-medium mb-1">
+          Regions to watch (optional)
+        </label>
+        <textarea id="watch_selectors" name="watch_selectors" rows="2"
+          placeholder="main article, .product-details"
+          class="w-full border rounded-lg px-3 py-2"></textarea>
+        <p class="text-xs text-slate-500 mt-1">When set, only matching regions are compared.</p>
+      </div>
+
+      <div>
+        <label for="keywords" class="block text-sm font-medium mb-1">
+          Alert keywords (optional)
+        </label>
+        <input id="keywords" name="keywords"
+          placeholder="price, availability, discontinued"
+          class="w-full border rounded-lg px-3 py-2">
+      </div>
+
+      <button type="submit"
+        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2.5 font-semibold">
+        Create monitor
+      </button>
+    </form>
+  </section>
+
+  <section class="lg:col-span-2">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-semibold">Your monitors</h2>
+      <span class="text-xs text-slate-500">Refreshes every 30 seconds</span>
+    </div>
+    <form method="get" action="{{ url_for('monitor_rows') }}"
+      hx-get="{{ url_for('monitor_rows') }}" hx-trigger="submit, change from:select"
+      hx-target="#monitor-list" hx-swap="innerHTML"
+      class="bg-white border rounded-xl p-3 mb-4 flex flex-col sm:flex-row gap-2">
+      <label class="sr-only" for="monitor-search">Search monitors</label>
+      <input id="monitor-search" name="q" value="{{ request.args.get('q', '') }}"
+        placeholder="Search by name or URL" class="flex-1 border rounded-lg px-3 py-2 text-sm">
+      <label class="sr-only" for="monitor-status">Filter by status</label>
+      <select id="monitor-status" name="status" class="border rounded-lg px-3 py-2 text-sm">
+        <option value="">All statuses</option>
+        {% for value in ["OK", "PENDING", "ERROR", "BLOCKED"] %}
+        <option value="{{ value }}" {% if request.args.get('status') == value %}selected{% endif %}>{{ value|title }}</option>
+        {% endfor %}
+      </select>
+      <label class="sr-only" for="monitor-enabled">Filter by state</label>
+      <select id="monitor-enabled" name="enabled" class="border rounded-lg px-3 py-2 text-sm">
+        <option value="">All monitors</option>
+        <option value="active" {% if request.args.get('enabled') == 'active' %}selected{% endif %}>Active</option>
+        <option value="paused" {% if request.args.get('enabled') == 'paused' %}selected{% endif %}>Paused</option>
+      </select>
+      <button type="submit" class="bg-slate-800 text-white rounded-lg px-4 py-2 text-sm">Filter</button>
+    </form>
+    <div id="monitor-list"
+      hx-get="{{ url_for('monitor_rows', q=request.args.get('q', ''), status=request.args.get('status', ''), enabled=request.args.get('enabled', '')) }}"
+      hx-trigger="load, every 30s"
+      hx-swap="innerHTML">
+      {% include "monitor_rows.html" %}
+    </div>
+  </section>
+</div>
+{% endblock %}

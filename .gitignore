@@ -1,0 +1,8 @@
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.env
+instance/*.db
+data/screenshots/*
+!data/screenshots/.gitkeep

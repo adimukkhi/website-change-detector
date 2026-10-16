@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}{{ monitor.name }} · History{% endblock %}
+
+{% block content %}
+<a href="/" class="text-sm text-indigo-600 hover:underline">← Dashboard</a>
+
+<div class="mt-4 mb-6">
+  <h1 class="text-3xl font-bold">{{ monitor.name }}</h1>
+  <p class="text-slate-500 break-all mt-2">{{ monitor.url }}</p>
+  <p class="text-sm mt-3"><a class="text-indigo-600 underline" href="{{ url_for('selector_picker', monitor_id=monitor.id) }}">Open visual region picker</a></p>
+  <p class="text-sm mt-3"><a class="text-indigo-600 underline" href="{{ url_for('export_monitor_history', monitor_id=monitor.id) }}">Export change history (CSV)</a></p>
+  <p class="text-sm mt-3">Status: <strong>{{ monitor.status }}</strong> · Interval: {{ monitor.interval_minutes }} minutes</p>
+  {% if monitor.status_message %}<p class="text-sm text-red-700 mt-2">{{ monitor.status_message }}</p>{% endif %}
+  <p class="text-sm text-slate-500 mt-2">Daily digest: {{ 'Enabled' if monitor.daily_digest and monitor.alert_email else 'Disabled' }}</p>
+</div>
+
+{% if snapshots %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <section class="bg-white border rounded-xl p-5">
+    <h2 class="font-semibold text-lg mb-4">Version timeline</h2>
+    {% if snapshots|length > 1 %}
+    <form method="post" action="{{ url_for('compare_snapshots', monitor_id=monitor.id) }}" class="mb-5 space-y-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="grid grid-cols-2 gap-2">
+        <select name="old_id" class="border rounded-lg px-2 py-1 text-sm" required>
+          {% for snapshot in snapshots %}<option value="{{ snapshot.id }}">Version {{ snapshots|length - loop.index0 }} — {{ snapshot.created_at|localtime }}</option>{% endfor %}
+        </select>
+        <select name="new_id" class="border rounded-lg px-2 py-1 text-sm" required>
+          {% for snapshot in snapshots %}<option value="{{ snapshot.id }}" {% if loop.first %}selected{% endif %}>Version {{ snapshots|length - loop.index0 }} — {{ snapshot.created_at|localtime }}</option>{% endfor %}
+        </select>
+      </div>
+      <button class="text-sm bg-indigo-600 text-white rounded-lg px-3 py-1.5" type="submit">Compare selected versions</button>
+    </form>
+    {% endif %}
+    <div class="space-y-4">
+      {% for snapshot in snapshots %}
+      <div class="border-l-2 border-indigo-200 pl-4">
+        <p class="font-semibold text-sm">Version {{ snapshots|length - loop.index0 }}</p>
+        <p class="text-xs text-slate-500 mt-1">{{ snapshot.created_at|localtime }}</p>
+        <p class="text-xs text-slate-500 mt-1">HTTP {{ snapshot.http_status }}</p>
+        {% if snapshot.summary %}<p class="text-sm mt-2 whitespace-pre-wrap">{{ snapshot.summary }}</p>{% endif %}
+        {% if not loop.last %}
+        <a class="inline-block text-sm text-indigo-600 hover:underline mt-2" href="{{ url_for('snapshot_diff', monitor_id=monitor.id, old_id=snapshots[loop.index].id, new_id=snapshot.id) }}">Compare with previous →</a>
+        {% endif %}
+        {% if not loop.last and snapshot.screenshot_path and snapshots[loop.index].screenshot_path %}
+        <a class="inline-block text-sm text-indigo-600 hover:underline mt-2" href="{{ url_for('visual_diff', monitor_id=monitor.id, old_id=snapshots[loop.index].id, new_id=snapshot.id) }}">View highlighted screenshot diff →</a>
+        <a class="inline-block text-sm text-indigo-600 hover:underline mt-2" href="{{ url_for('side_by_side', monitor_id=monitor.id, old_id=snapshots[loop.index].id, new_id=snapshot.id) }}">View side-by-side screenshots →</a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="lg:col-span-2 space-y-6">
+    <div class="bg-white border rounded-xl p-5">
+      <h2 class="font-semibold text-lg mb-3">Latest baseline</h2>
+      <p class="text-xs text-slate-500 mb-4">{{ snapshots[0].created_at|localtime }} · {{ snapshots[0].content_hash }}</p>
+      {% if snapshots[0].summary %}<div class="rounded-lg bg-indigo-50 border border-indigo-100 p-4 mb-4"><h3 class="font-semibold mb-2">AI change summary</h3><p class="text-sm whitespace-pre-wrap">{{ snapshots[0].summary }}</p></div>{% elif snapshots|length > 1 %}<p class="text-sm text-slate-500 mb-4">AI summaries require OPENAI_API_KEY in your environment.</p>{% endif %}
+      {% if snapshots[0].screenshot_path %}<img src="{{ url_for('snapshot_screenshot', snapshot_id=snapshots[0].id) }}" alt="Saved webpage screenshot" loading="lazy" class="w-full rounded-lg border">{% endif %}
+      <h3 class="font-semibold mt-6 mb-2">Normalized page text</h3>
+      <pre class="text-sm whitespace-pre-wrap break-words bg-slate-50 border rounded-lg p-4 max-h-96 overflow-auto">{{ snapshots[0].content_text }}</pre>
+    </div>
+
+    <div class="bg-white border rounded-xl p-5">
+      <h2 class="font-semibold text-lg mb-2">Numeric tracking</h2>
+      <p class="text-sm text-slate-500 mb-4">Numbers detected in labeled lines are tracked across snapshots. Select a metric to chart its history.</p>
+      <div class="flex gap-3 items-center mb-4"><label for="metric-name" class="text-sm font-medium">Metric</label><select id="metric-name" class="border rounded-lg px-3 py-2 max-w-full"><option value="">Loading metrics…</option></select></div>
+      <p id="metric-empty" class="text-sm text-slate-500 hidden">No numeric metrics have been detected yet.</p>
+      <canvas id="metric-chart" height="120"></canvas>
+    </div>
+  </section>
+</div>
+{% else %}
+<div class="bg-white border rounded-xl p-8"><h2 class="font-semibold">No baseline yet</h2><p class="text-sm text-slate-500 mt-2">Waiting for a successful browser check.</p></div>
+{% endif %}
+
+{% if snapshots %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+(async () => {
+  const response = await fetch({{ url_for('monitor_metrics', monitor_id=monitor.id)|tojson }});
+  const data = await response.json();
+  const select = document.getElementById('metric-name');
+  const empty = document.getElementById('metric-empty');
+  const canvas = document.getElementById('metric-chart');
+  if (!data.names.length) {
+    select.innerHTML = '<option value="">No metrics found</option>';
+    empty.classList.remove('hidden');
+    return;
+  }
+  select.innerHTML = data.names.map(name => `<option value="${name.replaceAll('&', '&amp;').replaceAll('"', '&quot;')}">${name}</option>`).join('');
+  let chart;
+  async function draw() {
+    const chosen = select.value;
+    const points = data.metrics.filter(item => item.name === chosen);
+    if (chart) chart.destroy();
+    chart = new Chart(canvas, {
+      type: 'line',
+      data: { labels: points.map(item => new Date(item.created_at).toLocaleString()), datasets: [{ label: chosen, data: points.map(item => item.value), tension: 0.2 }] },
+      options: { responsive: true, scales: { y: { beginAtZero: false } } }
+    });
+  }
+  select.addEventListener('change', draw);
+  await draw();
+})();
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Website Change Detector{% endblock %}</title>
+  <script>
+    (() => {
+      const saved = localStorage.getItem("wcd-theme");
+      const dark = saved === "dark" ||
+        (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.classList.toggle("dark", dark);
+    })();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <style>
+    .diff_add { background: #dcfce7; }
+    .diff_sub { background: #fee2e2; }
+    .diff_chg { background: #fef3c7; }
+    .diff_header { background: #e5e7eb; }
+    table.diff { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    table.diff td, table.diff th { padding: .4rem; vertical-align: top; }
+    .diff_next { display: none; }
+    html { color-scheme: light; }
+    html.dark { color-scheme: dark; }
+    html.dark body { background: #0f172a; color: #e2e8f0; }
+    html.dark .bg-white { background-color: #1e293b; }
+    html.dark .bg-slate-50 { background-color: #0f172a; }
+    html.dark .bg-slate-100 { background-color: #334155; }
+    html.dark .text-slate-900 { color: #f1f5f9; }
+    html.dark .text-slate-600,
+    html.dark .text-slate-500 { color: #94a3b8; }
+    html.dark .border,
+    html.dark .border-b,
+    html.dark .border-t,
+    html.dark .border-l-2,
+    html.dark .border-dashed { border-color: #475569; }
+    html.dark input,
+    html.dark select,
+    html.dark textarea { background: #0f172a; color: #e2e8f0; border-color: #475569; }
+    html.dark input::placeholder,
+    html.dark textarea::placeholder { color: #64748b; }
+    html.dark pre { background: #1e293b; }
+    html.dark .diff_header { background: #334155; }
+    html.dark .diff_add { background: #14532d; color: #dcfce7; }
+    html.dark .diff_sub { background: #7f1d1d; color: #fee2e2; }
+    html.dark .diff_chg { background: #78350f; color: #fef3c7; }
+    html.dark .bg-indigo-50 { background: #312e81; }
+    html.dark .border-indigo-100,
+    html.dark .border-indigo-200 { border-color: #4338ca; }
+    html.dark .bg-red-50 { background: #450a0a; }
+    html.dark .border-red-200 { border-color: #991b1b; }
+    html.dark .text-red-700,
+    html.dark .text-red-800 { color: #fca5a5; }
+    html.dark .bg-emerald-50 { background: #052e16; }
+    html.dark .border-emerald-200 { border-color: #166534; }
+    html.dark .text-emerald-800 { color: #86efac; }
+    html.dark .bg-amber-100 { background: #78350f; }
+    html.dark .text-amber-800 { color: #fde68a; }
+    html.dark .bg-emerald-100 { background: #14532d; }
+    html.dark .text-emerald-800 { color: #86efac; }
+    html.dark .bg-slate-800 { background: #020617; }
+    html.dark .text-white { color: #f8fafc; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900">
+  <header class="bg-white border-b">
+    <div class="max-w-7xl mx-auto px-5 py-4">
+      <div class="flex items-center justify-between gap-4">
+        <a href="/" class="text-xl font-bold"><span class="text-indigo-600">◉</span> Website Change Detector</a>
+        <div class="flex items-center gap-4">
+          <button id="theme-toggle" type="button"
+            class="text-sm border rounded-lg px-3 py-1.5 text-slate-600 hover:text-indigo-600"
+            aria-label="Switch to dark mode" aria-pressed="false">
+            <span id="theme-icon" aria-hidden="true">☾</span>
+            <span id="theme-label">Dark mode</span>
+          </button>
+          {% if current_user %}
+          <form method="post" action="{{ url_for('logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="text-sm text-slate-600 hover:text-indigo-600">Sign out</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </header>
+  <main class="max-w-7xl mx-auto px-5 py-8">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="mb-4 rounded-lg border p-3 {% if category == 'error' %}bg-red-50 border-red-200 text-red-800{% else %}bg-emerald-50 border-emerald-200 text-emerald-800{% endif %}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const toggle = document.getElementById("theme-toggle");
+      const icon = document.getElementById("theme-icon");
+      const label = document.getElementById("theme-label");
+      if (!toggle || !icon || !label) return;
+      const update = () => {
+        const dark = root.classList.contains("dark");
+        icon.textContent = dark ? "☀" : "☾";
+        label.textContent = dark ? "Light mode" : "Dark mode";
+        toggle.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+        toggle.setAttribute("aria-pressed", String(dark));
+      };
+      toggle.addEventListener("click", () => {
+        const dark = !root.classList.contains("dark");
+        root.classList.toggle("dark", dark);
+        localStorage.setItem("wcd-theme", dark ? "dark" : "light");
+        update();
+      });
+      update();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Visual region picker{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('monitor_detail', monitor_id=monitor.id) }}" class="text-sm text-indigo-600 underline">← Back to monitor</a>
+<h1 class="text-2xl font-bold mt-4 mb-2">Visual region picker</h1>
+<p class="text-slate-600 mb-4">Install the bookmarklet below by dragging it to your bookmarks bar. Open the monitored page, click the bookmarklet, then click the region you want to watch or ignore. The selector is copied or shown for you to paste below. This avoids embedding arbitrary sites inside the app.</p>
+<div class="rounded-xl border bg-white p-5 mb-6">
+  <a id="picker-bookmarklet" class="inline-block rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white" href="javascript:(()=>{let old=document.getElementById('__wcd_picker_style');if(old){old.remove();return}let s=document.createElement('style');s.id='__wcd_picker_style';s.textContent='*{cursor:crosshair!important}.__wcd_hover{outline:3px solid #6366f1!important;outline-offset:2px!important}';document.head.appendChild(s);let last=null;const selector=e=>{if(e.id)return '#'+CSS.escape(e.id);let a=[];while(e&&e.nodeType===1&&e!==document.body){let n=e.tagName.toLowerCase();if(e.classList.length)n+='.'+[...e.classList].slice(0,2).map(CSS.escape).join('.');let p=e.parentElement;if(p){let same=[...p.children].filter(x=>x.tagName===e.tagName);if(same.length>1)n+=':nth-of-type('+(same.indexOf(e)+1)+')'}a.unshift(n);if(e.id)break;e=p}return a.join(' > ')};const over=e=>{if(last)last.classList.remove('__wcd_hover');last=e;last.classList.add('__wcd_hover')};const click=e=>{e.preventDefault();e.stopPropagation();let v=selector(e.target);document.removeEventListener('mouseover',move,true);document.removeEventListener('click',click,true);if(last)last.classList.remove('__wcd_hover');s.remove();prompt('Copy this CSS selector and paste it into the Website Change Detector:',v)};const move=e=>over(e.target);document.addEventListener('mouseover',move,true);document.addEventListener('click',click,true)})()">WCD Region Picker — drag to bookmarks</a>
+  <p class="text-xs text-slate-500 mt-3">Use the bookmarklet only on the public page you want to monitor. It runs locally in that page and does not send the page content anywhere.</p>
+</div>
+<form method="post" action="{{ url_for('save_picked_selector', monitor_id=monitor.id) }}" class="rounded-xl border bg-white p-5">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="selector" class="block font-medium mb-2">CSS selector</label>
+  <input id="selector" name="selector" required maxlength="500" class="w-full border rounded-lg p-3 mb-4" placeholder="e.g. main article, #price, .product-details">
+  <div class="flex flex-wrap gap-3">
+    <button name="mode" value="watch" class="bg-indigo-600 text-white rounded-lg px-4 py-2">Watch this region</button>
+    <button name="mode" value="ignore" class="bg-red-600 text-white rounded-lg px-4 py-2">Ignore this region</button>
+  </div>
+</form>
+{% endblock %}

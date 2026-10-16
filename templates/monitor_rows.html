@@ -1,0 +1,55 @@
+{% if monitors %}
+<div class="space-y-3">
+  {% for monitor in monitors %}
+  <article class="bg-white border rounded-xl p-4">
+    <div class="flex flex-col sm:flex-row sm:justify-between gap-3">
+      <div class="min-w-0">
+        <a href="{{ url_for('monitor_detail', monitor_id=monitor.id) }}" class="font-semibold hover:text-indigo-600">{{ monitor.name }}</a>
+        <p class="text-sm text-slate-500 break-all mt-1">{{ monitor.url }}</p>
+        <p class="text-xs text-slate-500 mt-2">Every {{ monitor.interval_minutes }} min · Last checked: {{ monitor.last_checked_at|localtime if monitor.last_checked_at else "Not checked yet" }}</p>
+        <p class="text-xs text-slate-500 mt-1">Last successful check: {{ monitor.last_success_at|localtime if monitor.last_success_at else "None yet" }}</p>
+        <p class="text-xs text-slate-500 mt-1">Last changed: {{ monitor.last_changed_at|localtime if monitor.last_changed_at else "No changes detected yet" }}</p>
+        {% if monitor.status_message %}
+        <p class="text-sm text-red-700 mt-2">{{ monitor.status_message }}</p>
+        {% endif %}
+      </div>
+
+      <div class="flex flex-wrap gap-3 items-start shrink-0">
+        <span class="text-xs font-semibold rounded-full px-2.5 py-1 {% if monitor.status == 'OK' %}bg-emerald-100 text-emerald-800{% elif monitor.status == 'BLOCKED' %}bg-amber-100 text-amber-800{% elif monitor.status == 'ERROR' %}bg-red-100 text-red-800{% else %}bg-slate-100 text-slate-700{% endif %}">{{ monitor.status }}</span>
+
+        <form method="post" action="{{ url_for('check_monitor_now', monitor_id=monitor.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" {% if not monitor.enabled %}disabled{% endif %} class="text-sm bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg px-3 py-1.5">Check Now</button>
+        </form>
+
+        <form method="post" action="{{ url_for('toggle_monitor', monitor_id=monitor.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="text-sm border rounded-lg px-3 py-1.5">{{ "Pause" if monitor.enabled else "Resume" }}</button>
+        </form>
+
+        <form method="post" action="{{ url_for('delete_monitor', monitor_id=monitor.id) }}" onsubmit="return confirm('Delete this monitor and its version history?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="text-sm text-red-600 hover:underline">Delete</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="border-t mt-4 pt-3 flex justify-between">
+      <span class="text-xs text-slate-500">{{ monitor.snapshots|length }} snapshots</span>
+      <a href="{{ url_for('monitor_detail', monitor_id=monitor.id) }}" class="text-sm text-indigo-600 hover:underline">Version history →</a>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white border border-dashed rounded-xl p-10 text-center">
+  <h3 class="font-semibold">No monitors yet</h3>
+  <p class="text-sm text-slate-500 mt-2">
+    {% if request.args.get('q') or request.args.get('status') or request.args.get('enabled') %}
+    No monitors match the selected filters.
+    {% else %}
+    Add a public URL to create your first baseline.
+    {% endif %}
+  </p>
+</div>
+{% endif %}

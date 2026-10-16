@@ -1,0 +1,14 @@
+Flask>=3.1,<4.0
+Flask-SQLAlchemy>=3.1,<4.0
+SQLAlchemy>=2.0,<3.0
+Flask-WTF>=1.2,<2.0
+email-validator>=2.2,<3.0
+APScheduler>=3.11,<4.0
+playwright>=1.55,<2.0
+beautifulsoup4>=4.13,<5.0
+soupsieve>=2.6,<3.0
+python-dotenv>=1.1,<2.0
+requests>=2.32,<3.0
+waitress>=3.0,<4.0
+Pillow>=11.0,<13.0
+pytest>=8.3,<9.0

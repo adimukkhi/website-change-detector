@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Create account' if mode == 'register' else 'Sign in' }} · Website Change Detector{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto bg-white border rounded-2xl p-6">
+<h1 class="text-2xl font-bold mb-5">{{ 'Create account' if mode == 'register' else 'Sign in' }}</h1>
+<form method="post" action="{{ url_for('register_post' if mode == 'register' else 'login_post') }}" class="space-y-4">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div><label class="block text-sm font-medium mb-1" for="email">Email</label><input class="w-full border rounded-lg px-3 py-2" id="email" name="email" type="email" required maxlength="255" autocomplete="email"></div>
+<div><label class="block text-sm font-medium mb-1" for="password">Password</label><input class="w-full border rounded-lg px-3 py-2" id="password" name="password" type="password" required minlength="{{ 10 if mode == 'register' else 1 }}" autocomplete="{{ 'new-password' if mode == 'register' else 'current-password' }}"></div>
+<button class="w-full bg-indigo-600 text-white rounded-lg px-4 py-2.5 font-semibold" type="submit">{{ 'Create account' if mode == 'register' else 'Sign in' }}</button>
+</form>
+<p class="text-sm text-slate-600 mt-4">{% if mode == 'register' %}Already have an account? <a class="text-indigo-600 underline" href="{{ url_for('login') }}">Sign in</a>{% else %}New here? <a class="text-indigo-600 underline" href="{{ url_for('register') }}">Create an account</a>{% endif %}</p>
+</div>
+{% endblock %}
